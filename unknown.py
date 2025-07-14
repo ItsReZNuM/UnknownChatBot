@@ -6,9 +6,13 @@ from time import time , sleep
 import json
 import os
 from logging import getLogger
+from dotenv import load_dotenv
 
-TOKEN = 'YOUR_BOT_TOKEN'
-ADMIN_USER_ID = 123456789 # Admin Of bot  Digit ID , you can take it from @RezDigitIdBot
+load_dotenv()
+
+TOKEN = os.getenv("TOKEN")
+ADMIN_USER_ID = os.getenv("ADMIN_USER_ID")
+
 blocked_users = set()
 bot = telebot.TeleBot(TOKEN)
 logger = getLogger(__name__)
