@@ -44,7 +44,7 @@ To get AnonExposed up and running, follow these steps:
     pip install -r requirements.txt
     ```
 3.  **Configure Your Bot:**
-    * Open `unknown.py` (or your bot's main script) in a text editor.
+    * Make an .env file like the example in the repo. 
     * Replace `'YOUR_BOT_TOKEN'` with your actual Telegram Bot Token from BotFather:
         ```python
         TOKEN = 'YOUR_BOT_TOKEN' # Replace with your bot's token
@@ -55,7 +55,7 @@ To get AnonExposed up and running, follow these steps:
         ```
 4.  **Run the Bot:**
     ```bash
-    python unknown.py
+    python main.py
     ```
     Your bot should now be running! 🎉
 
