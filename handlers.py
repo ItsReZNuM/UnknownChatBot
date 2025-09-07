@@ -1,7 +1,10 @@
+# handlers.py
+
 from telebot import types
 from time import sleep
 
-from config import bot, ADMIN_USER_ID, logger, blocked_users
+# forward_mappings رو از کانفیگ وارد می‌کنیم
+from config import bot, ADMIN_USER_ID, logger, blocked_users, forward_mappings
 from utils import is_message_valid, check_rate_limit
 from database import add_user, get_all_users
 
@@ -21,7 +24,6 @@ def start(message):
         bot.send_message(user_id, error_message)
         return
     
-    # ذخیره کاربر در دیتابیس SQLite
     add_user(user_id, username, user_name)
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -43,7 +45,6 @@ def alive(message):
 # --- Message Handlers ---
 
 def send_broadcast(message):
-    """این تابع پیام ادمین را برای همه کاربران دیتابیس ارسال می‌کند."""
     if not is_message_valid(message):
         return
     user_id = message.chat.id
@@ -91,30 +92,45 @@ def handle_all_messages(message):
         bot.reply_to(message, "هه زهی خیال باطل، فعلا بلاکی برو هر موقع از بلاک دراومدی بیا 😏")
         return
 
-    # منطق برای ادمین
+    # =============== بخش ویرایش شده برای ادمین ===============
     if user_id == ADMIN_USER_ID:
-        if message.reply_to_message and message.reply_to_message.forward_from:
-            reply_to_user_id = message.reply_to_message.forward_from.id
-            try:
-                # به جای کپی کردن همه انواع پیام، از copy_message استفاده می‌کنیم که ساده‌تر است
-                bot.copy_message(reply_to_user_id, message.chat.id, message.message_id)
-                bot.reply_to(message, "پیامت ارسال شد ✅\nصبر کن تا جوابت رو بده")
-            except Exception as e:
-                bot.reply_to(message, f"ارسال پیام با خطا مواجه شد: {e}")
-                logger.error(f"Failed to reply to user {reply_to_user_id}: {e}")
+        # چک می‌کنیم آیا این پیام، ریپلای است؟
+        if message.reply_to_message:
+            original_msg_id = message.reply_to_message.message_id
+            
+            # از دیکشنری که ساختیم، آیدی کاربر رو پیدا می‌کنیم
+            reply_to_user_id = forward_mappings.get(original_msg_id)
+
+            if reply_to_user_id:
+                try:
+                    bot.copy_message(reply_to_user_id, message.chat.id, message.message_id)
+                    bot.reply_to(message, "پیامت ارسال شد ✅\nصبر کن تا جوابت رو بده")
+                    # بعد از ارسال موفق، این نگاشت رو حذف می‌کنیم تا حافظه پر نشه
+                    del forward_mappings[original_msg_id]
+                except Exception as e:
+                    bot.reply_to(message, f"ارسال پیام با خطا مواجه شد: {e}")
+                    logger.error(f"Failed to reply to user {reply_to_user_id}: {e}")
+            else:
+                # اگر پیام در نگاشت نبود (مثلا پیام قدیمی بوده یا ربات ری‌استارت شده)
+                if message.text != "پیام همگانی 📢":
+                    bot.reply_to(message, "برای پاسخ به کاربر، باید روی پیام فوروارد شده او ریپلای کنی (ممکنه این پیام قدیمی باشه).")
         else:
-            # این پیام فقط زمانی نمایش داده می‌شود که ادمین یک پیام معمولی بفرستد (نه در جواب کسی)
-            # و دکمه "پیام همگانی" را هم نزده باشد
+            # اگر پیام ادمین ریپلای نبود
             if message.text != "پیام همگانی 📢":
                 bot.reply_to(message, "برای پاسخ به کاربر، باید روی پیام فوروارد شده او ریپلای کنی.")
 
-    # منطق برای کاربران عادی
+    # =============== بخش ویرایش شده برای کاربران عادی ===============
     else:
         full_name = message.from_user.first_name
         if message.from_user.last_name:
             full_name += " " + message.from_user.last_name
 
-        bot.forward_message(ADMIN_USER_ID, message.chat.id, message.message_id)
+        # پیام کاربر رو فوروارد می‌کنیم و اطلاعات پیام جدید رو می‌گیریم
+        forwarded_msg = bot.forward_message(ADMIN_USER_ID, message.chat.id, message.message_id)
+        
+        # آیدی پیام فوروارد شده رو به آیدی کاربر اصلی مرتبط می‌کنیم
+        forward_mappings[forwarded_msg.message_id] = user_id
+        logger.info(f"Mapping created: {forwarded_msg.message_id} -> {user_id}")
 
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("بلاکه بلاک ❌", callback_data=f"block_{user_id}"))
@@ -131,7 +147,6 @@ def handle_all_messages(message):
         bot.reply_to(message, "پیامت ارسال شد ✅\nصبر کن تا جوابت رو بده")
 
 # --- Callback Query Handler ---
-
 @bot.callback_query_handler(func=lambda call: True)
 def button_callback(call):
     action, user_id_str = call.data.split("_")
