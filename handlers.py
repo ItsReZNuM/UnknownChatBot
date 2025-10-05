@@ -98,6 +98,7 @@ def handle_user_messages(message):
     # ارسال پیام کاربر به ادمین همراه با دکمه‌های جدید
     bot.forward_message(ADMIN_USER_ID, user_id, message.message_id)
 
+    username = message.from_user.username
     keyboard = types.InlineKeyboardMarkup()
     reply_button = types.InlineKeyboardButton("پاسخ ✍️", callback_data=f"reply_{user_id}")
     block_button = types.InlineKeyboardButton("بلاکه بلاک ❌", callback_data=f"block_{user_id}")
@@ -108,7 +109,8 @@ def handle_user_messages(message):
         ADMIN_USER_ID,
         f"📩 پیام ناشناس جدید از:\n"
         f"👤 نام: {full_name}\n"
-        f"🆔 آیدی: `{user_id}`",
+        f"🆔 آیدی عددی: `{user_id}`",
+        f"👤 یوزرنیم: {username}" ,
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
