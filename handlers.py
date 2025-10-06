@@ -109,10 +109,9 @@ def handle_user_messages(message):
         ADMIN_USER_ID,
         f"📩 پیام ناشناس جدید از:\n"
         f"👤 نام: {full_name}\n"
-        f"🆔 آیدی عددی: `{user_id}`",
-        f"👤 یوزرنیم: {username}" ,
+        f"🆔 آیدی عددی: {user_id}\n"
+        f"👤 یوزرنیم: @{username}" ,
         reply_markup=keyboard,
-        parse_mode="Markdown"
     )
     bot.reply_to(message, "پیامت ارسال شد ✅\nصبر کن تا جوابت رو بده")
 
@@ -134,7 +133,7 @@ def button_callback(call):
             call.message.chat.id,
             f"پیام خود را برای ارسال به کاربر `{user_id}` بنویسید:",
             reply_markup=markup,
-            parse_mode="Markdown"
+            parse_mode="MarkdownV2"
         )
         bot.register_next_step_handler(msg, send_reply_to_user, user_id)
 
